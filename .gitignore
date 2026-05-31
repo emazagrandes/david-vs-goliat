@@ -1,0 +1,25 @@
+# Entorno virtual (NO se sube: cada quien lo recrea con requirements.txt)
+.venv/
+venv/
+
+# Datasets descargados (se bajan solos con torchvision; pesan y no se versionan)
+# /data/ con barra inicial = solo la carpeta raíz, no src/data/
+/data/
+*.gz
+*.tar
+
+# Cachés de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Checkpoints de modelos entrenados (pesados; se regeneran entrenando)
+*.pt
+*.pth
+checkpoints/
+
+# Sistema
+.DS_Store
+
+# Notebooks: salidas (opcional)
+.ipynb_checkpoints/

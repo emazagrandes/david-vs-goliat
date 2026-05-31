@@ -1,0 +1,11 @@
+condition,label,model,dataset,fraction,seed,epochs,batch_size,lr,test_acc,n_params,device,seconds
+A,David (small),small,mnist,0.01,42,10,128,0.001,0.7723,9930,mps,25.7
+A,David (small),small,mnist,0.05,42,10,128,0.001,0.9313,9930,mps,26.5
+A,David (small),small,mnist,0.1,42,10,128,0.001,0.9636,9930,mps,28.2
+A,David (small),small,mnist,0.25,42,10,128,0.001,0.9735,9930,mps,32.2
+A,David (small),small,mnist,1.0,42,10,128,0.001,0.9853,9930,mps,54.3
+C,Goliat (large),large,mnist,0.01,42,10,128,0.001,0.8545,619786,mps,29.1
+C,Goliat (large),large,mnist,0.05,42,10,128,0.001,0.9648,619786,mps,30.4
+C,Goliat (large),large,mnist,0.1,42,10,128,0.001,0.9748,619786,mps,33.5
+C,Goliat (large),large,mnist,0.25,42,10,128,0.001,0.9879,619786,mps,41.7
+C,Goliat (large),large,mnist,1.0,42,10,128,0.001,0.9908,619786,mps,77.1

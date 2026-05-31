@@ -1,0 +1,21 @@
+# Dependencias del proyecto david-vs-goliat
+# Versiones FIJADAS (==) para reproducibilidad: cualquiera que instale
+# esto obtiene exactamente el mismo entorno que tú.
+#
+# Instalar con:  python -m venv .venv && ./.venv/bin/python -m pip install -r requirements.txt
+
+# --- Core: deep learning ---
+torch==2.8.0            # el framework de redes neuronales
+torchvision==0.23.0     # datasets (MNIST, CIFAR), transforms, modelos base
+
+# --- Cálculo numérico ---
+numpy==2.0.2            # arrays, álgebra; base de casi todo
+
+# --- Datos y figuras ---
+pandas==2.3.3           # leer/escribir los CSVs de results/
+matplotlib==3.9.4       # generar las figuras (curva de datos, barras OOD)
+
+# --- Utilidades ---
+pyyaml==6.0.3           # leer los configs/*.yaml de cada experimento
+tqdm==4.67.3            # barras de progreso durante el entrenamiento
+thop==0.1.1.post2209072238  # contar FLOPs y parámetros de los modelos
