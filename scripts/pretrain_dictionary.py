@@ -59,6 +59,7 @@ def pretrain(
     lr: float,
     seed: int,
     out_path: str,
+    whiten: bool = True,
     max_batches: int = None,
 ):
     """Aprende Φ por dictionary learning no supervisado y lo guarda en disco."""
@@ -82,7 +83,7 @@ def pretrain(
     module = CorticalModule(
         in_channels, n_atoms=n_atoms, kernel_size=kernel_size,
         n_iters=n_iters, lambda_sparse=lambda_sparse, step_size=step_size,
-        use_divnorm=False, learnable=True,
+        use_divnorm=False, learnable=True, whiten=whiten,
     ).to(device)
     _normalize_atoms(module.dictionary.data)
 
@@ -90,7 +91,7 @@ def pretrain(
     padding = kernel_size // 2
 
     print(f">> pre-entrenando Φ: {dataset} | {n_atoms} átomos {kernel_size}x{kernel_size} "
-          f"x {in_channels}ch | device {device}")
+          f"x {in_channels}ch | whiten={whiten} | device {device}")
 
     for epoch in range(1, epochs + 1):
         running_recon = 0.0
@@ -103,12 +104,15 @@ def pretrain(
 
             # 1. INFERENCIA del código disperso a con Φ actual (sin gradiente:
             #    en este paso Φ se trata como fijo, como en ISTA alternado).
+            #    Si hay whitening, el código representa la imagen BLANQUEADA,
+            #    así que ese es también el objetivo de reconstrucción.
             with torch.no_grad():
                 a = module(x)
+                target = module._apply_whitening(x) if module.whiten else x
 
             # 2. ACTUALIZACIÓN de Φ: gradiente del error de reconstrucción.
             recon = F.conv_transpose2d(a, module.dictionary, padding=padding)
-            recon_loss = F.mse_loss(recon, x)
+            recon_loss = F.mse_loss(recon, target)
             optimizer.zero_grad()
             recon_loss.backward()
             optimizer.step()
@@ -133,6 +137,7 @@ def pretrain(
             "kernel_size": kernel_size,
             "in_channels": in_channels,
             "lambda_sparse": lambda_sparse,
+            "whiten": whiten,
         },
         out_path,
     )
@@ -147,7 +152,8 @@ def main():
     p.add_argument("--kernel_size", type=int, default=7)
     p.add_argument("--n_iters", type=int, default=10,
                    help="Iteraciones ISTA para inferir el código (más que en train).")
-    p.add_argument("--lambda_sparse", type=float, default=0.1)
+    p.add_argument("--lambda_sparse", type=float, default=0.02,
+                   help="Con whitening la señal es ~0.2 de escala; λ≈0.02 da sparsity ~95%.")
     p.add_argument("--step_size", type=float, default=0.1,
                    help="Paso ISTA. Con divnorm OFF debe ser pequeño (η≤1/L) o diverge.")
     p.add_argument("--epochs", type=int, default=20)
@@ -155,6 +161,9 @@ def main():
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--out", default="assets/dict_cifar10_32x7.pt")
+    p.add_argument("--no_whiten", dest="whiten", action="store_false",
+                   help="Desactiva el whitening (por defecto ON, da átomos Gabor).")
+    p.set_defaults(whiten=True)
     p.add_argument("--quick", action="store_true",
                    help="Prueba mínima: 3 épocas, 20 batches. Valida la mecánica.")
     args = p.parse_args()
@@ -176,6 +185,7 @@ def main():
         lr=args.lr,
         seed=args.seed,
         out_path=args.out,
+        whiten=args.whiten,
         max_batches=max_batches,
     )
 

@@ -52,6 +52,9 @@ class CorticalModule(nn.Module):
         norm_sigma: float = 1e-2,
         learnable: bool = False,
         init_dict: torch.Tensor = None,
+        whiten: bool = False,
+        whiten_ksize: int = 15,
+        whiten_f0: float = 0.2,
     ):
         super().__init__()
         self.n_iters = n_iters
@@ -61,6 +64,22 @@ class CorticalModule(nn.Module):
         self.norm_sigma = norm_sigma
         self.out_channels = n_atoms        # nº de canales que recibirá la CNN
         self.padding = kernel_size // 2    # 'same': preserva alto x ancho
+
+        # WHITENING (blanqueo) tipo Olshausen-Field. Las imágenes naturales
+        # tienen un espectro de potencia ~1/f²: la energía se concentra en las
+        # bajas frecuencias. Sin corregirlo, el sparse coding gasta sus átomos
+        # en esas correlaciones de bajo nivel y NO emergen los Gabor. El
+        # whitening aplana el espectro (lo multiplica por |f|) con un low-pass
+        # que evita amplificar el ruido de alta frecuencia. Lo implementamos
+        # como una convolución FIJA (0 params): diseñamos el filtro en
+        # frecuencia, lo pasamos a kernel espacial vía IFFT y lo aplicamos por
+        # canal. Va DENTRO del módulo -> idéntico en pre-entrenamiento y
+        # despliegue (sin desajuste train/deploy).
+        self.whiten = whiten
+        if whiten:
+            self.whiten_pad = whiten_ksize // 2
+            self.register_buffer("whiten_kernel",
+                                 self._build_whitening_kernel(whiten_ksize, whiten_f0))
 
         # El DICCIONARIO D: n_atoms "plantillas" (átomos) de tamaño kxk.
         # Forma [n_atoms, in_channels, k, k]. Se usa en los dos sentidos:
@@ -88,6 +107,31 @@ class CorticalModule(nn.Module):
             weight = weight / norms
         self.dictionary = nn.Parameter(weight, requires_grad=learnable)
 
+    def _build_whitening_kernel(self, ksize: int, f0: float, grid: int = 32) -> torch.Tensor:
+        """Filtro de whitening en frecuencia -> kernel espacial kxk (fijo).
+
+        R(f) = |f| · exp(−(|f|/f0)⁴): la rampa |f| aplana el espectro 1/f² de
+        las imágenes naturales; el low-pass exp(...) corta el ruido por encima
+        de f0. Lo construimos en una rejilla `grid`, lo llevamos al espacio con
+        IFFT2, lo centramos (fftshift) y recortamos el centro kxk.
+        """
+        fy = torch.fft.fftfreq(grid).view(grid, 1)
+        fx = torch.fft.fftfreq(grid).view(1, grid)
+        rho = torch.sqrt(fy ** 2 + fx ** 2)            # |f| en cada frecuencia
+        filt = rho * torch.exp(-(rho / f0) ** 4)       # rampa × low-pass
+        kfull = torch.fft.fftshift(torch.fft.ifft2(filt).real)  # centro = DC
+        c, h = grid // 2, ksize // 2
+        kern = kfull[c - h:c + h + 1, c - h:c + h + 1].clone()
+        kern = kern / kern.abs().sum()                 # normaliza la ganancia
+        return kern[None, None]                        # [1,1,ksize,ksize]
+
+    def _apply_whitening(self, x: torch.Tensor) -> torch.Tensor:
+        """Convolución de whitening por canal (depthwise), padding reflejado."""
+        c = x.shape[1]
+        weight = self.whiten_kernel.expand(c, 1, *self.whiten_kernel.shape[-2:])
+        x = F.pad(x, [self.whiten_pad] * 4, mode="reflect")
+        return F.conv2d(x, weight, groups=c)
+
     def _soft_threshold(self, u: torch.Tensor) -> torch.Tensor:
         """Shrinkage no negativo: relu(u - lambda).
 
@@ -107,6 +151,11 @@ class CorticalModule(nn.Module):
         return a / torch.sqrt(power + self.norm_sigma ** 2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # WHITENING primero (si está activo): el sparse coding opera sobre la
+        # imagen blanqueada, donde emergen los átomos tipo Gabor.
+        if self.whiten:
+            x = self._apply_whitening(x)
+
         # a = código disperso que buscamos. Empieza en cero (sin actividad).
         b, _, h, w = x.shape
         a = x.new_zeros(b, self.out_channels, h, w)

@@ -32,24 +32,33 @@ def _build_backbone(base: str, in_channels: int, num_classes: int):
     raise ValueError(f"Modelo desconocido: {base!r} (usa 'small' o 'large')")
 
 
-def _load_dictionary(dict_path: str):
-    """Carga un diccionario Φ pre-entrenado (sparse coding no supervisado)."""
+def _load_pretrained(dict_path: str):
+    """Carga (Φ, whiten) de un diccionario pre-entrenado."""
     payload = torch.load(dict_path, map_location="cpu")
-    # El script de pre-entrenamiento guarda un dict con metadatos; aceptamos
-    # también un tensor pelado por si se guarda así.
-    return payload["dictionary"] if isinstance(payload, dict) else payload
+    if isinstance(payload, dict):
+        return payload["dictionary"], payload.get("whiten", False)
+    return payload, False  # tensor pelado: sin metadatos
 
 
 def _build_frontend(kind: str, in_channels: int, learnable: bool, dict_path: str = None):
-    """Construye el preprocesador que va delante de la CNN."""
+    """Construye el preprocesador que va delante de la CNN.
+
+    whiten=True en todas las variantes corticales: así B (learnable), Bf
+    (random fijo) y Bp (pretrained fijo) comparten EXACTAMENTE la arquitectura
+    y solo difieren en el origen de Φ. El whitening es fijo (0 params).
+    """
     if kind == "cortical":          # módulo completo
-        # Con dict_path -> Φ pre-entrenado (prior real de Olshausen-Field).
-        # Sin él -> Φ aleatorio normalizado (proyección aleatoria).
-        init_dict = _load_dictionary(dict_path) if dict_path else None
-        return CorticalModule(in_channels, learnable=learnable, init_dict=init_dict)
+        # Con dict_path -> Φ pre-entrenado (prior real); el whiten lo dicta el
+        # propio diccionario guardado. Sin él -> Φ aleatorio, whiten ON igual.
+        if dict_path:
+            init_dict, whiten = _load_pretrained(dict_path)
+        else:
+            init_dict, whiten = None, True
+        return CorticalModule(in_channels, learnable=learnable,
+                              init_dict=init_dict, whiten=whiten)
     if kind == "lesion":            # A'': mismos filtros y params, SIN estructura
         return CorticalModule(in_channels, n_iters=1, use_divnorm=False,
-                              learnable=learnable)
+                              learnable=learnable, whiten=True)
     if kind == "dumb":              # A': capa genérica con params equivalentes
         return DumbFrontEnd(in_channels)
     raise ValueError(f"Frontal desconocido: {kind!r} (usa cortical/lesion/dumb)")
