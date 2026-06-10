@@ -31,9 +31,17 @@ from src.train import TrainConfig, train_one
 
 # Cada condición = una etiqueta legible + qué modelo usa.
 # (Más adelante añadiremos "use_module": True/False cuando exista cortical.)
+# Cada condición: etiqueta legible + modelo + si el frontal aprende sus pesos.
+# Los controles A'/A'' comparten params con B para aislar la ESTRUCTURA.
 CONDITIONS = {
-    "A": {"label": "David (small)",  "model": "small"},
-    "C": {"label": "Goliat (large)", "model": "large"},
+    "A":   {"label": "David (small)",        "model": "small",          "learnable": False},
+    "B":   {"label": "David+cortical",       "model": "small+cortical", "learnable": True},
+    "Bf":  {"label": "David+cortical FIJO",  "model": "small+cortical", "learnable": False},
+    "Bp":  {"label": "David+cortical PRETRAINED", "model": "small+cortical", "learnable": False, "pretrained": True},
+    "Ap":  {"label": "A' control tamaño",    "model": "small+dumb",     "learnable": True},
+    "App": {"label": "A'' lesión estructura","model": "small+lesion",   "learnable": True},
+    "C":   {"label": "Goliat (large)",       "model": "large",          "learnable": False},
+    "D":   {"label": "Goliat+cortical",      "model": "large+cortical", "learnable": True},
 }
 
 # Los puntos del eje X de la curva: porción del set de entrenamiento.
@@ -49,6 +57,7 @@ def run_curve(
     batch_size: int,
     lr: float,
     out_path: str,
+    dict_path: str = None,
 ):
     """Recorre el producto condiciones x fracciones x seeds y guarda CSV."""
     rows = []
@@ -64,6 +73,7 @@ def run_curve(
                 print(f"\n[{i}/{total}] condición {cond} ({spec['label']}) "
                       f"| fracción {fraction:.0%} | seed {seed}")
 
+                # El Φ pre-entrenado solo se inyecta en condiciones "pretrained".
                 cfg = TrainConfig(
                     model=spec["model"],
                     dataset=dataset,
@@ -72,6 +82,8 @@ def run_curve(
                     epochs=epochs,
                     batch_size=batch_size,
                     lr=lr,
+                    learnable_cortical=spec.get("learnable", False),
+                    dict_path=dict_path if spec.get("pretrained") else None,
                 )
                 # verbose=False: aquí no queremos el log época-a-época,
                 # solo el resultado final de cada condición.
@@ -118,6 +130,8 @@ def main():
     p.add_argument("--batch_size", type=int, default=128)
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--out", default="results/data_curve.csv")
+    p.add_argument("--dict_path", default=None,
+                   help="Φ pre-entrenado (.pt) que recibe la condición Bp (pretrained).")
     p.add_argument("--quick", action="store_true",
                    help="Prueba mínima: 2 fracciones, 1 época. Valida el pipeline.")
     args = p.parse_args()
@@ -138,6 +152,7 @@ def main():
         batch_size=args.batch_size,
         lr=args.lr,
         out_path=args.out,
+        dict_path=args.dict_path,
     )
 
 

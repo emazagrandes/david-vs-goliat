@@ -23,3 +23,7 @@ checkpoints/
 
 # Notebooks: salidas (opcional)
 .ipynb_checkpoints/
+
+# Logs de corridas (volcados de stdout; ruido, no resultados)
+results/*_log*.txt
+results/run_log*.txt

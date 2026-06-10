@@ -17,19 +17,22 @@ from torchvision import datasets, transforms
 from src.utils.seed import make_generator, seed_worker
 
 # Estadísticas (media, std) de cada dataset, para normalizar.
-# MNIST: valores estándar usados por toda la literatura.
+# MNIST: 1 canal. CIFAR-10: 3 canales (RGB), medias/std estándar por canal.
 _STATS = {
     "mnist": ((0.1307,), (0.3081,)),
+    "cifar10": ((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616)),
 }
 
 # Clase de torchvision por cada nombre de dataset.
 _DATASETS = {
     "mnist": datasets.MNIST,
+    "cifar10": datasets.CIFAR10,
 }
 
 # Metadatos que los modelos necesitan para construirse genéricamente.
 DATASET_META = {
-    "mnist": {"in_channels": 1, "num_classes": 10, "image_size": 32},  # 28->32 por el padding
+    "mnist":   {"in_channels": 1, "num_classes": 10, "image_size": 32},  # 28->32 por el padding
+    "cifar10": {"in_channels": 3, "num_classes": 10, "image_size": 32},  # ya nativo 32x32 RGB
 }
 
 
@@ -38,8 +41,9 @@ def get_transform(name: str) -> transforms.Compose:
     mean, std = _STATS[name]
     steps = []
     # MNIST/Fashion son 28x28. Las llevamos a 32x32 con padding de ceros
-    # (un borde de 2 px). Así todos los datasets entran a 32x32 y, tras los
-    # dos maxpools, quedan en 8x8 (divisible por 4 -> compatible con MPS).
+    # (un borde de 2 px). CIFAR-10 ya es 32x32 nativo, no necesita pad.
+    # Sin data augmentation a propósito: aumentar datos confundiría el eje
+    # "cuántos datos hacen falta" que mide la curva.
     if name in ("mnist", "fashion_mnist"):
         steps.append(transforms.Pad(2))            # 28x28 -> 32x32
     steps.append(transforms.ToTensor())            # PIL [0..255] -> tensor [0..1]

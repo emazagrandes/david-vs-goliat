@@ -31,6 +31,8 @@ class TrainConfig:
     epochs: int = 10
     batch_size: int = 128
     lr: float = 1e-3          # learning rate (tamaño del paso de aprendizaje)
+    learnable_cortical: bool = False  # solo aplica a modelos "+cortical"
+    dict_path: str = None     # Φ pre-entrenado para "+cortical" (None = aleatorio)
 
 
 def train_one(cfg: TrainConfig, verbose: bool = True) -> dict:
@@ -42,7 +44,11 @@ def train_one(cfg: TrainConfig, verbose: bool = True) -> dict:
     )
 
     meta = DATASET_META[cfg.dataset]
-    model = build_model(cfg.model, meta["in_channels"], meta["num_classes"]).to(device)
+    model = build_model(
+        cfg.model, meta["in_channels"], meta["num_classes"],
+        learnable_cortical=cfg.learnable_cortical,
+        dict_path=cfg.dict_path,
+    ).to(device)
 
     criterion = nn.CrossEntropyLoss()                       # función de pérdida
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)  # optimizador
@@ -83,13 +89,21 @@ def train_one(cfg: TrainConfig, verbose: bool = True) -> dict:
 
 def main():
     p = argparse.ArgumentParser(description="Entrenar una condición.")
-    p.add_argument("--model", default="small", choices=["small", "large"])
+    p.add_argument("--model", default="small",
+                   choices=["small", "large",
+                            "small+cortical", "large+cortical",
+                            "small+dumb", "small+lesion",
+                            "large+dumb", "large+lesion"])
     p.add_argument("--dataset", default="mnist")
     p.add_argument("--fraction", type=float, default=1.0)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--epochs", type=int, default=10)
     p.add_argument("--batch_size", type=int, default=128)
     p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--learnable_cortical", action="store_true",
+                   help="Deja que el diccionario del módulo aprenda (solo +cortical).")
+    p.add_argument("--dict_path", default=None,
+                   help="Ruta a un Φ pre-entrenado (.pt) para el módulo +cortical.")
     args = p.parse_args()
 
     result = train_one(TrainConfig(**vars(args)))
