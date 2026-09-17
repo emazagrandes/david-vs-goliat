@@ -58,6 +58,9 @@ def run_curve(
     lr: float,
     out_path: str,
     dict_path: str = None,
+    eval_ood: bool = False,
+    ood_root: str = "data/CIFAR-10-C",
+    ood_severity: int = None,
 ):
     """Recorre el producto condiciones x fracciones x seeds y guarda CSV."""
     rows = []
@@ -84,6 +87,9 @@ def run_curve(
                     lr=lr,
                     learnable_cortical=spec.get("learnable", False),
                     dict_path=dict_path if spec.get("pretrained") else None,
+                    eval_ood=eval_ood,
+                    ood_root=ood_root,
+                    ood_severity=ood_severity,
                 )
                 # verbose=False: aquí no queremos el log época-a-época,
                 # solo el resultado final de cada condición.
@@ -95,6 +101,9 @@ def run_curve(
                 print(f"    -> test_acc {result['test_acc']:.4f} "
                       f"| {result['n_params']:,} params "
                       f"| {result['seconds']}s")
+                # Escritura INCREMENTAL: el CSV refleja siempre lo ya corrido,
+                # así si el job se cae a mitad no se pierde el progreso.
+                _write_csv(rows, out_path)
 
     _write_csv(rows, out_path)
     elapsed = time.time() - t0
@@ -132,6 +141,12 @@ def main():
     p.add_argument("--out", default="results/data_curve.csv")
     p.add_argument("--dict_path", default=None,
                    help="Φ pre-entrenado (.pt) que recibe la condición Bp (pretrained).")
+    p.add_argument("--eval_ood", action="store_true",
+                   help="Evaluar robustez OOD (CIFAR-10-C) tras entrenar cada modelo.")
+    p.add_argument("--ood_root", default="data/CIFAR-10-C",
+                   help="Carpeta con los .npy de CIFAR-10-C.")
+    p.add_argument("--ood_severity", type=int, default=None,
+                   help="Severidad OOD 1..5 (por defecto: media de las 5).")
     p.add_argument("--quick", action="store_true",
                    help="Prueba mínima: 2 fracciones, 1 época. Valida el pipeline.")
     args = p.parse_args()
@@ -153,6 +168,9 @@ def main():
         lr=args.lr,
         out_path=args.out,
         dict_path=args.dict_path,
+        eval_ood=args.eval_ood,
+        ood_root=args.ood_root,
+        ood_severity=args.ood_severity,
     )
 
 

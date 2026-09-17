@@ -1,0 +1,37 @@
+condition,label,model,dataset,fraction,seed,epochs,batch_size,lr,learnable_cortical,dict_path,eval_ood,ood_root,ood_severity,test_acc,n_params,device,seconds
+A,David (small),small,cifar10,0.05,42,25,128,0.001,False,,False,data/CIFAR-10-C,,0.4973,10218,cuda,42.1
+A,David (small),small,cifar10,0.05,43,25,128,0.001,False,,False,data/CIFAR-10-C,,0.4911,10218,cuda,41.6
+A,David (small),small,cifar10,0.05,44,25,128,0.001,False,,False,data/CIFAR-10-C,,0.4806,10218,cuda,42.2
+A,David (small),small,cifar10,1.0,42,25,128,0.001,False,,False,data/CIFAR-10-C,,0.7077,10218,cuda,193.4
+A,David (small),small,cifar10,1.0,43,25,128,0.001,False,,False,data/CIFAR-10-C,,0.7079,10218,cuda,191.6
+A,David (small),small,cifar10,1.0,44,25,128,0.001,False,,False,data/CIFAR-10-C,,0.703,10218,cuda,189.4
+Ap,A' control tamaño,small+dumb,cifar10,0.05,42,25,128,0.001,True,,False,data/CIFAR-10-C,,0.5051,84714,cuda,46.2
+Ap,A' control tamaño,small+dumb,cifar10,0.05,43,25,128,0.001,True,,False,data/CIFAR-10-C,,0.475,84714,cuda,46.3
+Ap,A' control tamaño,small+dumb,cifar10,0.05,44,25,128,0.001,True,,False,data/CIFAR-10-C,,0.4634,84714,cuda,46.3
+Ap,A' control tamaño,small+dumb,cifar10,1.0,42,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7112,84714,cuda,250.3
+Ap,A' control tamaño,small+dumb,cifar10,1.0,43,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7125,84714,cuda,250.7
+Ap,A' control tamaño,small+dumb,cifar10,1.0,44,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7226,84714,cuda,250.2
+App,A'' lesión estructura,small+lesion,cifar10,0.05,42,25,128,0.001,True,,False,data/CIFAR-10-C,,0.4921,84714,cuda,57.6
+App,A'' lesión estructura,small+lesion,cifar10,0.05,43,25,128,0.001,True,,False,data/CIFAR-10-C,,0.4741,84714,cuda,57.5
+App,A'' lesión estructura,small+lesion,cifar10,0.05,44,25,128,0.001,True,,False,data/CIFAR-10-C,,0.468,84714,cuda,58.0
+App,A'' lesión estructura,small+lesion,cifar10,1.0,42,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7245,84714,cuda,425.5
+App,A'' lesión estructura,small+lesion,cifar10,1.0,43,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7233,84714,cuda,425.2
+App,A'' lesión estructura,small+lesion,cifar10,1.0,44,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7341,84714,cuda,425.6
+Bf,David+cortical FIJO,small+cortical,cifar10,0.05,42,25,128,0.001,False,,False,data/CIFAR-10-C,,0.452,47082,cuda,133.0
+Bf,David+cortical FIJO,small+cortical,cifar10,0.05,43,25,128,0.001,False,,False,data/CIFAR-10-C,,0.462,47082,cuda,134.3
+Bf,David+cortical FIJO,small+cortical,cifar10,0.05,44,25,128,0.001,False,,False,data/CIFAR-10-C,,0.4686,47082,cuda,133.4
+Bf,David+cortical FIJO,small+cortical,cifar10,1.0,42,25,128,0.001,False,,False,data/CIFAR-10-C,,0.6651,47082,cuda,654.5
+Bf,David+cortical FIJO,small+cortical,cifar10,1.0,43,25,128,0.001,False,,False,data/CIFAR-10-C,,0.6729,47082,cuda,656.7
+Bf,David+cortical FIJO,small+cortical,cifar10,1.0,44,25,128,0.001,False,,False,data/CIFAR-10-C,,0.6892,47082,cuda,656.7
+Bp,David+cortical PRETRAINED,small+cortical,cifar10,0.05,42,25,128,0.001,False,/kaggle/working/dict_cifar10_256.pt,False,data/CIFAR-10-C,,0.4565,47082,cuda,133.2
+Bp,David+cortical PRETRAINED,small+cortical,cifar10,0.05,43,25,128,0.001,False,/kaggle/working/dict_cifar10_256.pt,False,data/CIFAR-10-C,,0.445,47082,cuda,133.2
+Bp,David+cortical PRETRAINED,small+cortical,cifar10,0.05,44,25,128,0.001,False,/kaggle/working/dict_cifar10_256.pt,False,data/CIFAR-10-C,,0.4503,47082,cuda,133.3
+Bp,David+cortical PRETRAINED,small+cortical,cifar10,1.0,42,25,128,0.001,False,/kaggle/working/dict_cifar10_256.pt,False,data/CIFAR-10-C,,0.6479,47082,cuda,652.6
+Bp,David+cortical PRETRAINED,small+cortical,cifar10,1.0,43,25,128,0.001,False,/kaggle/working/dict_cifar10_256.pt,False,data/CIFAR-10-C,,0.6451,47082,cuda,652.7
+Bp,David+cortical PRETRAINED,small+cortical,cifar10,1.0,44,25,128,0.001,False,/kaggle/working/dict_cifar10_256.pt,False,data/CIFAR-10-C,,0.6448,47082,cuda,652.8
+B,David+cortical,small+cortical,cifar10,0.05,42,25,128,0.001,True,,False,data/CIFAR-10-C,,0.4729,84714,cuda,206.2
+B,David+cortical,small+cortical,cifar10,0.05,43,25,128,0.001,True,,False,data/CIFAR-10-C,,0.4729,84714,cuda,206.2
+B,David+cortical,small+cortical,cifar10,0.05,44,25,128,0.001,True,,False,data/CIFAR-10-C,,0.4882,84714,cuda,206.4
+B,David+cortical,small+cortical,cifar10,1.0,42,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7188,84714,cuda,2116.8
+B,David+cortical,small+cortical,cifar10,1.0,43,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7148,84714,cuda,2121.8
+B,David+cortical,small+cortical,cifar10,1.0,44,25,128,0.001,True,,False,data/CIFAR-10-C,,0.7174,84714,cuda,2116.9

@@ -121,14 +121,37 @@ def evaluate_model(
 
 @torch.no_grad()
 def evaluate_ood(model: nn.Module, ood_loader, device) -> float:
-    """Accuracy sobre un set OUT-OF-DISTRIBUTION (corrupto/desplazado).
-
-    Mismo cálculo que `accuracy`, pero el nombre deja explícito que el
-    loader NO es el test limpio sino uno corrupto (MNIST-C, CIFAR-10-C).
-    Es un hook: cuando montemos los datasets OOD, el orquestador llamará
-    aquí pasándole el loader corrupto correspondiente.
-    """
+    """Accuracy sobre UN loader OUT-OF-DISTRIBUTION (corrupto/desplazado)."""
     return accuracy(model, ood_loader, device)
+
+
+@torch.no_grad()
+def evaluate_ood_suite(
+    model: nn.Module,
+    device,
+    root: str,
+    name: str = "cifar10",
+    corruptions=None,
+    severity: int = None,
+    batch_size: int = 256,
+) -> dict:
+    """Accuracy en CADA corrupción de CIFAR-10-C + la media.
+
+    Devuelve {"ood_<corrupción>": acc, ..., "ood_mean": media}. El desglose
+    por corrupción permite ver si la divisive normalization ayuda
+    ESPECÍFICAMENTE donde la teoría predice (contrast, brightness), no solo
+    en media.
+    """
+    from src.data.datasets import CIFAR10C_CORRUPTIONS, get_ood_loader
+
+    corrs = corruptions or CIFAR10C_CORRUPTIONS
+    out = {}
+    for c in corrs:
+        loader = get_ood_loader(c, batch_size, root=root, name=name,
+                                severity=severity)
+        out[f"ood_{c}"] = round(accuracy(model, loader, device), 4)
+    out["ood_mean"] = round(sum(out.values()) / len(out), 4)
+    return out
 
 
 def _human(n: int) -> str:

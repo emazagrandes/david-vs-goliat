@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 
 from src.data.datasets import DATASET_META, get_dataloaders
-from src.eval import accuracy, count_parameters
+from src.eval import accuracy, count_parameters, evaluate_ood_suite
 from src.models import build_model
 from src.utils.device import get_device
 from src.utils.seed import set_seed
@@ -33,6 +33,9 @@ class TrainConfig:
     lr: float = 1e-3          # learning rate (tamaño del paso de aprendizaje)
     learnable_cortical: bool = False  # solo aplica a modelos "+cortical"
     dict_path: str = None     # Φ pre-entrenado para "+cortical" (None = aleatorio)
+    eval_ood: bool = False    # tras entrenar, evaluar en CIFAR-10-C (robustez)
+    ood_root: str = "data/CIFAR-10-C"  # dónde viven los .npy de CIFAR-10-C
+    ood_severity: int = None  # None = media de las 5 severidades; 1..5 = una
 
 
 def train_one(cfg: TrainConfig, verbose: bool = True) -> dict:
@@ -78,13 +81,23 @@ def train_one(cfg: TrainConfig, verbose: bool = True) -> dict:
 
     elapsed = time.time() - start
     n_params = count_parameters(model)
-    return {
+    result = {
         **asdict(cfg),
         "test_acc": round(test_acc, 4),
         "n_params": n_params,
         "device": str(device),
         "seconds": round(elapsed, 1),
     }
+
+    # Evaluación OOD (robustez): accuracy en cada corrupción de CIFAR-10-C.
+    if cfg.eval_ood:
+        ood = evaluate_ood_suite(model, device, root=cfg.ood_root,
+                                 name=cfg.dataset, severity=cfg.ood_severity)
+        result.update(ood)
+        if verbose:
+            print(f"OOD media: {ood['ood_mean']:.4f}")
+
+    return result
 
 
 def main():
@@ -104,6 +117,12 @@ def main():
                    help="Deja que el diccionario del módulo aprenda (solo +cortical).")
     p.add_argument("--dict_path", default=None,
                    help="Ruta a un Φ pre-entrenado (.pt) para el módulo +cortical.")
+    p.add_argument("--eval_ood", action="store_true",
+                   help="Tras entrenar, evaluar robustez en CIFAR-10-C.")
+    p.add_argument("--ood_root", default="data/CIFAR-10-C",
+                   help="Carpeta con los .npy de CIFAR-10-C.")
+    p.add_argument("--ood_severity", type=int, default=None,
+                   help="Severidad 1..5 (por defecto: media de las 5).")
     args = p.parse_args()
 
     result = train_one(TrainConfig(**vars(args)))

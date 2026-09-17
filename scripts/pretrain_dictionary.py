@@ -148,12 +148,12 @@ def pretrain(
 def main():
     p = argparse.ArgumentParser(description="Pre-entrenar el diccionario cortical (no supervisado).")
     p.add_argument("--dataset", default="cifar10", choices=list(DATASET_META.keys()))
-    p.add_argument("--n_atoms", type=int, default=32)
+    p.add_argument("--n_atoms", type=int, default=64)
     p.add_argument("--kernel_size", type=int, default=7)
     p.add_argument("--n_iters", type=int, default=10,
                    help="Iteraciones ISTA para inferir el código (más que en train).")
-    p.add_argument("--lambda_sparse", type=float, default=0.02,
-                   help="Con whitening la señal es ~0.2 de escala; λ≈0.02 da sparsity ~95%.")
+    p.add_argument("--lambda_sparse", type=float, default=0.05,
+                   help="Sin whitening la señal es ~1.0; λ≈0.05 da sparsity ~92% (código informativo).")
     p.add_argument("--step_size", type=float, default=0.1,
                    help="Paso ISTA. Con divnorm OFF debe ser pequeño (η≤1/L) o diverge.")
     p.add_argument("--epochs", type=int, default=20)
@@ -161,9 +161,9 @@ def main():
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--out", default="assets/dict_cifar10_32x7.pt")
-    p.add_argument("--no_whiten", dest="whiten", action="store_false",
-                   help="Desactiva el whitening (por defecto ON, da átomos Gabor).")
-    p.set_defaults(whiten=True)
+    p.add_argument("--whiten", dest="whiten", action="store_true",
+                   help="Activa whitening (da átomos Gabor pero borra color; OFF por defecto).")
+    p.set_defaults(whiten=False)
     p.add_argument("--quick", action="store_true",
                    help="Prueba mínima: 3 épocas, 20 batches. Valida la mecánica.")
     args = p.parse_args()

@@ -84,6 +84,64 @@ def make_fraction_subset(dataset: Dataset, fraction: float, seed: int) -> Datase
     return Subset(dataset, indices.tolist())
 
 
+# --- OOD: CIFAR-10-C (test corrupto) -----------------------------------------
+# 19 tipos de corrupción estándar (Hendrycks & Dietterich 2019). Cada .npy es
+# [50000,32,32,3] uint8 = 10.000 imágenes de test × 5 niveles de severidad.
+CIFAR10C_CORRUPTIONS = [
+    "brightness", "contrast", "defocus_blur", "elastic_transform", "fog",
+    "frost", "gaussian_blur", "gaussian_noise", "glass_blur", "impulse_noise",
+    "jpeg_compression", "motion_blur", "pixelate", "saturate", "shot_noise",
+    "snow", "spatter", "speckle_noise", "zoom_blur",
+]
+
+
+class _OODDataset(Dataset):
+    """Imágenes CIFAR-10-C (uint8 HWC) normalizadas igual que el train limpio."""
+
+    def __init__(self, imgs_uint8, labels, mean, std):
+        self.imgs = imgs_uint8                       # numpy [N,32,32,3] uint8
+        self.labels = labels                         # numpy [N]
+        self.mean = torch.tensor(mean).view(3, 1, 1)
+        self.std = torch.tensor(std).view(3, 1, 1)
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, i):
+        # uint8 HWC -> float CHW en [0,1] -> normalizado (misma stats que train)
+        x = torch.from_numpy(self.imgs[i]).float().div_(255).permute(2, 0, 1)
+        return (x - self.mean) / self.std, int(self.labels[i])
+
+
+def get_ood_loader(
+    corruption: str,
+    batch_size: int,
+    root: str = "data/CIFAR-10-C",
+    name: str = "cifar10",
+    severity: int = None,
+    num_workers: int = 2,
+) -> DataLoader:
+    """DataLoader de UNA corrupción de CIFAR-10-C.
+
+    severity=None -> usa las 50.000 (media sobre los 5 niveles).
+    severity=s (1..5) -> solo ese nivel (sus 10.000 imágenes).
+    Normaliza con las MISMAS estadísticas que el train limpio: el modelo ve
+    el shift de distribución, no un cambio de escala artificial.
+    """
+    import os
+    import numpy as np
+
+    imgs = np.load(os.path.join(root, f"{corruption}.npy"))   # [50000,32,32,3]
+    labels = np.load(os.path.join(root, "labels.npy"))         # [50000]
+    if severity is not None:
+        sl = slice((severity - 1) * 10000, severity * 10000)
+        imgs, labels = imgs[sl], labels[sl]
+    mean, std = _STATS[name]
+    ds = _OODDataset(imgs, labels, mean, std)
+    return DataLoader(ds, batch_size=batch_size, shuffle=False,
+                      num_workers=num_workers)
+
+
 def get_dataloaders(
     name: str,
     fraction: float,
